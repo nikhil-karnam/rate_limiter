@@ -26,7 +26,7 @@ tokens = tokens - requests
 redis.call('HSET', apiKey, 'tokens', tokens, 'lastUpdated', currentTime)
 
 if tokens < 0 then
-  return currentTime + math.ceil(-tokens / refillRate)
+  return currentTime + math.ceil((1 - tokens) / refillRate)
 end
 return waitUntil
 `;
