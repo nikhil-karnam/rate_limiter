@@ -9,7 +9,8 @@ A distributed rate limiter built with NestJS and Redis, modeled on Databricks' d
 - Every 100 ms, each server reports its count to Redis.
 - Redis adds tokens for the time passed, subtracts the tokens consumed locally, and saves.
 - If the remaining token count is <= 0, Redis makes the server time out for however long it takes to refill the bucket to 1 token.
-- Because a server can spam 100 requests right after verifying through a report that >= 1 token is available, overshooting may occur.
+- Because a server can spam 100 requests right after >= 1 tokens are available, overshooting may occur.
+- But that server's next report puts the Redis bucket into a token debt and that puts a timeout on servers that report to Redis.
 - API keys are split across 3 Redis instances by hash.
 - If Redis is down, each server falls back to a local limit.
 
