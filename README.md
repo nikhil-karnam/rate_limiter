@@ -7,7 +7,7 @@ A distributed rate limiter built with NestJS and Redis, modeled on Databricks' d
 - Each server counts requests per API key in its own memory, so checks never wait on Redis.
 - These requests are locally capped at 100.
 - Every 100 ms, each server reports its local request count to Redis and the local count gets reset.
-- Redis runs a token bucket that caps at 100 tokens across all servers in the region and gradually refills at 100 tokens per second.
+- Redis runs a token bucket that caps at 100 tokens across all servers in the region and gradually refills 100 tokens per second.
 - Upon reception, Redis fills the bucket based on the time since the last refill. It then subtracts the number of tokens a server consumed since its last report.
 - If the remaining token count is <= 0, Redis makes the server time out for however long it takes to refill the bucket to 1 token.
 - Because a server can wait until 1 token is present and then spam 100 more requests, the request count can overshoot.
