@@ -15,29 +15,27 @@ local refillRate = 1/10
 if redis.call('EXISTS', apiKey) == 0 then
   redis.call('HSET', apiKey, 'tokens', 100, 'lastUpdated', currentTime)
 end
+
 local lastUpdated = tonumber(redis.call('HGET', apiKey, 'lastUpdated'))
 local tokens = tonumber(redis.call('HGET', apiKey, 'tokens'))
 
 if currentTime - lastUpdated > expireThreshold then
-  redis.call('PEXPIRE', apiKey, expireThreshold)
+  redis.call('DEL', apiKey)
   return -1
 end
 
-if requests > 0 then
-  -- edge case for when a reshard occurs and the old key doesn't get polled and deleted manually
-  -- * 2 avoids race condition with manual delete
-  redis.call('PEXPIRE', apiKey, expireThreshold * 2)
+redis.call('PEXPIRE', apiKey, expireThreshold)
 
-  tokens = math.min(100, tokens + (currentTime - lastUpdated) * refillRate)
-  tokens = tokens - requests
-  redis.call('HSET', apiKey, 'tokens', tokens, 'lastUpdated', currentTime)
-
-  if tokens <= 0 then
-    waitUntil = currentTime + math.ceil((1 - tokens) / refillRate)
-  end
+-- if there's no tokens to be consumed and there's no timeout that needs syncing,
+-- skip updating and let the key expire
+if requests == 0 and waitUntil <= currentTime then
+  return waitUntil
 end
 
-return waitUntil
+tokens = math.min(100, tokens + (currentTime - lastUpdated) * refillRate)
+tokens = tokens - requests
+redis.call('HSET', apiKey, 'tokens', tokens, 'lastUpdated', currentTime)
+return currentTime + math.ceil((1 - tokens) / refillRate)
 `;
 
 @Injectable()
