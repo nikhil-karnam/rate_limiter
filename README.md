@@ -9,7 +9,7 @@ Distributed rate limiters built with NestJS and Redis, modeled on Databricks des
 - Every 100ms, each server reports its count to Redis, called "batch-reporting". Redis adds tokens for the time passed, subtracts the tokens consumed locally, and saves. If the remaining token count is <= 0, Redis makes the server time out for however long it takes to refill the bucket to 1 token.
 - local server tokens are capped at 100, enforcing a local limit.
 - If Redis is down on a report, the local request counter drains 10 tokens. This acts as a fall-back limiter, allowing 100 tokens per second per server.
-- API keys are split across 3 Redis instances by user-based hash.
+- API keys are split across 3 Redis instances by a user-based hash.
 
 Why does it cause bursts?\
 Imagine 3 servers keep receiving requests from the same user and they are blocked because all are on timeout. When >= 1 tokens are available, a burst of 300 requests occur for that user. A burst just occurred.
