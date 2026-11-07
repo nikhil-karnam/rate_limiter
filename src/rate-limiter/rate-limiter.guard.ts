@@ -19,12 +19,10 @@ end
 local lastUpdated = tonumber(redis.call('HGET', apiKey, 'lastUpdated'))
 local tokens = tonumber(redis.call('HGET', apiKey, 'tokens'))
 
-if currentTime - lastUpdated > expireThreshold then
+if requests == 0 and currentTime - lastUpdated > expireThreshold then
   redis.call('DEL', apiKey)
   return -1
 end
-
-redis.call('PEXPIRE', apiKey, expireThreshold)
 
 -- if there's no tokens to be consumed and there's no timeout that needs syncing,
 -- skip updating and let the key expire
@@ -35,6 +33,11 @@ end
 tokens = math.min(100, tokens + (currentTime - lastUpdated) * refillRate)
 tokens = tokens - requests
 redis.call('HSET', apiKey, 'tokens', tokens, 'lastUpdated', currentTime)
+
+-- still need an automatic expire because if resharding happens, old tokens don't get polled through lua
+-- * 2 to avoid race condition with manual expire
+redis.call('PEXPIRE', apiKey, expireThreshold * 2)
+
 return currentTime + math.ceil((1 - tokens) / refillRate)
 `;
 
