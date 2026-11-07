@@ -7,27 +7,36 @@ const SYNC_SCRIPT = `
 local apiKey = KEYS[1]
 local requests = tonumber(ARGV[1])
 local waitUntil = tonumber(ARGV[2])
+local rawTime = redis.call('TIME')
+local currentTime = tonumber(rawTime[1]) * 1000 + math.floor(tonumber(rawTime[2]) / 1000)
+local expireThreshold = 60000
 local refillRate = 1/10
-
-local time = redis.call('TIME')
-local currentTime = tonumber(time[1]) * 1000 + math.floor(tonumber(time[2]) / 1000)
 
 if redis.call('EXISTS', apiKey) == 0 then
   redis.call('HSET', apiKey, 'tokens', 100, 'lastUpdated', currentTime)
 end
-
 local lastUpdated = tonumber(redis.call('HGET', apiKey, 'lastUpdated'))
 local tokens = tonumber(redis.call('HGET', apiKey, 'tokens'))
 
-tokens = math.min(100, tokens + (currentTime - lastUpdated) * refillRate)
-
-tokens = tokens - requests
-
-redis.call('HSET', apiKey, 'tokens', tokens, 'lastUpdated', currentTime)
-
-if tokens <= 0 then
-  return currentTime + math.ceil((1 - tokens) / refillRate)
+if currentTime - lastUpdated > expireThreshold then
+  redis.call('PEXPIRE', apiKey, expireThreshold)
+  return -1
 end
+
+if requests > 0 then
+  -- edge case for when a reshard occurs and the old key doesn't get polled and deleted manually
+  -- * 2 avoids race condition with manual delete
+  redis.call('PEXPIRE', apiKey, expireThreshold * 2)
+
+  tokens = math.min(100, tokens + (currentTime - lastUpdated) * refillRate)
+  tokens = tokens - requests
+  redis.call('HSET', apiKey, 'tokens', tokens, 'lastUpdated', currentTime)
+
+  if tokens <= 0 then
+    waitUntil = currentTime + math.ceil((1 - tokens) / refillRate)
+  end
+end
+
 return waitUntil
 `;
 
@@ -50,7 +59,12 @@ export class RateLimiterGuard implements CanActivate {
           keys: [apiKey],
           arguments: [String(currentRequests), String(entry.waitUntil)],
         }));
-        entry.requests -= currentRequests;
+        
+        if (entry.waitUntil === -1) {
+          this.counters.delete(apiKey);
+        } else {
+          entry.requests -= currentRequests;
+        }
       } 
       catch {
         // if Redis is down, make the requests itself the token bucket
