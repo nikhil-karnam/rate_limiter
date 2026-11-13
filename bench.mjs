@@ -20,7 +20,9 @@ for (const port of [6379, 6380, 6381]) {
 
 await getTimes();
 const result = await autocannon({
-  url: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+  // points at envoy
+  url: 'http://localhost:8080',
+  
   connections: 300,
   overallRate: 25000,
   duration: 30,

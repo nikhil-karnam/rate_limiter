@@ -1,0 +1,51 @@
+static_resources:
+  listeners:
+  - name: main
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 8080 }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: ingress
+          route_config:
+            virtual_hosts:
+            - name: all
+              domains: ["*"]
+              routes:
+              - match: { prefix: "/" }
+                route: { cluster: servers, timeout: 1s } # cap client response times to 1 second
+          http_filters:
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+  - name: servers
+    type: STATIC
+    load_balancing_policy: # this section settings makes it check all 3 servers
+      policies:
+      - typed_extension_config:
+          name: envoy.load_balancing_policies.least_request
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.load_balancing_policies.least_request.v3.LeastRequest
+            selection_method: FULL_SCAN
+    outlier_detection: # passive health check
+      consecutive_5xx: 5 # timeout after 5 fails
+      interval: 5s # check whether the timeout is still active every 5 seconds
+      base_ejection_time: 30s # timeout for 30 seconds
+    health_checks: # active health check
+    - timeout: 1s # > 1s response counts as failed
+      interval: 10s # sends a ping every 10 seconds
+      unhealthy_threshold: 1
+      healthy_threshold: 1
+      http_health_check:
+        path: /health
+    load_assignment:
+      cluster_name: servers
+      endpoints:
+      - lb_endpoints:
+        - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 3000 } } }
+        - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 3001 } } }
+        - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 3002 } } }
