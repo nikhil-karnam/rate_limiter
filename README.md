@@ -38,10 +38,6 @@ Communicates with Redis and consumes tokens on every request instead of periodic
 
 ## Run
 
-```bash
-npm install
-npm run build
-PORT=3000 node dist/main.js
-```
+Requires Node.js, Redis, and Envoy installed on Linux or WSL.
 
-To benchmark, run 3 instances on ports 3000–3002 with Redis on 6379–6381, then `node bench.mjs`. Start with `MODE=dumpsterfire` to run the version that communicates with Redis on every request.
+From the project folder, run `npm install && npm run build`, then `bash start.sh` to start Redis, the 3 servers, and Envoy, and `bash stop.sh` to shut everything down.
