@@ -15,7 +15,7 @@ static_resources:
               domains: ["*"]
               routes:
               - match: { prefix: "/" }
-                route: { cluster: servers, timeout: 5s } # cap client response times to 1 second
+                route: { cluster: servers }
           http_filters:
           - name: envoy.filters.http.router
             typed_config:
@@ -31,10 +31,16 @@ static_resources:
           typed_config:
             "@type": type.googleapis.com/envoy.extensions.load_balancing_policies.least_request.v3.LeastRequest
             selection_method: FULL_SCAN
+
+    circuit_breakers: # queue limit. my pc processes 50K req/s max, a queue longer than 250K would make requests take > 5s
+      thresholds:
+      - max_pending_requests: 250000
+
     outlier_detection: # passive health check
       consecutive_5xx: 5 # timeout after 5 fails
       interval: 5s # check whether the timeout is still active every 5 seconds
       base_ejection_time: 30s # timeout for 30 seconds
+
     health_checks: # active health check
     - timeout: 1s # > 1s response counts as failed
       interval: 10s # sends a ping every 10 seconds
@@ -42,6 +48,7 @@ static_resources:
       healthy_threshold: 1
       http_health_check:
         path: /health
+
     load_assignment:
       cluster_name: servers
       endpoints:
