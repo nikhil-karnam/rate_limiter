@@ -29,7 +29,7 @@ Communicates with Redis and consumes tokens on every request instead of periodic
 
 ## Results
 
-25,000 requests per second, 3 app instances, 2 ms simulated Redis latency.
+25,000 requests per second across 3 app instances, 3 ms simulated Redis RTT.
 
 | | Check p99 | Overshoot |
 |---|---|---|
