@@ -15,7 +15,7 @@ static_resources:
               domains: ["*"]
               routes:
               - match: { prefix: "/" }
-                route: { cluster: servers, timeout: 1s } # cap client response times to 1 second
+                route: { cluster: servers, timeout: 5s } # cap client response times to 1 second
           http_filters:
           - name: envoy.filters.http.router
             typed_config:
