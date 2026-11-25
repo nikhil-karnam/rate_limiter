@@ -1,5 +1,3 @@
-## Distributed API Gateway
-
 Distributed API rate limiters for 3 servers built with NestJS and Redis, comparing Databricks design and Stripe/GitHub's design. Added a load balancer (Envoy Proxy) for server health checks, rerouting traffic from slow/dead servers, and shedding load.
 
 ## How Databricks's limiter works
