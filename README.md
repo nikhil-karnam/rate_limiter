@@ -29,6 +29,8 @@ If a burst takes 4ms, there is practically no difference between reporting every
 
 Communicates with Redis and consumes tokens on every request instead of periodically. The benefit is that no extra request slips through because every request checks the token bucket, and the cost is that communicating with Redis every request is slower.
 
+---
+
 ### Results
 
 25,000 requests per second across 3 app instances, 3 ms simulated Redis RTT.
@@ -37,6 +39,8 @@ Communicates with Redis and consumes tokens on every request instead of periodic
 |---|---|---|
 | Periodic Consumption | 0.04 ms | 6.7% |
 | Per-Request Consumption | 8.74 ms | ~0% |
+
+---
 
 ### Run
 
