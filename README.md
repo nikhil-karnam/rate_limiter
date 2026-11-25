@@ -36,8 +36,6 @@ Communicates with Redis and consumes tokens on every request instead of periodic
 | Periodic Consumption | 0.04 ms | 6.7% |
 | Per-Request Consumption | 8.74 ms | ~0% |
 
----
-
 ## Setup and Running
 
 Requires Node.js, Redis, and Envoy installed on Linux or WSL.
