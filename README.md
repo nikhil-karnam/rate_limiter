@@ -1,8 +1,10 @@
-# Rate Limiter
+## Distributed API Gateway
 
-Distributed rate limiters built with NestJS and Redis, modeled on Databricks design and Stripe/GitHub's design. The goal is to limit each user's requests to 100 tokens per second across 3 servers in a region.
+Distributed rate limiters for 3 servers built with NestJS and Redis, comparing Databricks design and Stripe/GitHub's design. Added a load balancer (envoy Proxy) with server health checks, rerouting traffic from slow servers, and shedding load.
 
-## How Databricks limiter works
+---
+
+### How Databricks's limiter works
 
 - Each server lets requests through, without asking Redis.
 - Redis runs a shared token bucket that caps at 100 tokens and gradually refills 100 tokens per second.
@@ -21,22 +23,22 @@ How much burst?\
 If the number of tokens in the bucket is 1, one burst results in 200 extra concurrent requests every 3 seconds. If the number of tokens is sitting at 100, the first server's report will bring it down to 0 tokens, receive a 10ms wait time to fill 1 token, and do an extra burst of 100 requests following the first 300, so long as the 100 go through before the first server reports again.
 
 What if you change the report frequency?\
-If a burst takes 4ms, there is little difference between reporting every 100ms vs every 700ms. In both cases, a token debt of ~300 will occur. The trace: the first server brings it to -100 and gets told to wait 1 second. The second brings it to -200 and gets told to wait 2 seconds. The third -300 and 3 seconds. After 700ms, all are still waiting. They report again and sync their wait times to the 2.3 seconds. Overall, still a burst of 300 every 3 seconds. The point of increasing the report frequency is therefore to have a higher likelihood of blocking a burst mid way. If reports are every 10ms, it may catch the 4ms burst mid way, tokens get consumed, and servers may receive a wait time. The cost of higher report frequency is more load on Redis.
+If a burst takes 4ms, there is practically no difference between reporting every 100ms vs every 700ms. In both cases, a token debt of ~300 will likely occur because the bursts will likely happen right away before the report can stop it. If reports are every 10ms, it may catch the 4ms burst mid way, tokens get consumed, and servers may receive a wait time. The point of increasing the report frequency is therefore to increase the likelihood that a burst is stopped mid-way. The cost is wasted computer power, assuming Redis can scan all keys that frequently.
 
-## How Stripe/GitHub's limiter works
+### How Stripe/GitHub's limiter works
 
-Communicates with Redis and consumes tokens on every request instead of periodically. The benefit is that bursts are prevented because every request requires checking the token bucket, and the cost is that communicating with Redis every request is slower.
+Communicates with Redis and consumes tokens on every request instead of periodically. The benefit is that no extra request slips through because every request checks the token bucket, and the cost is that communicating with Redis every request is slower.
 
-## Results
+### Results
 
 25,000 requests per second across 3 app instances, 3 ms simulated Redis RTT.
 
 | | Check p99 | Overshoot |
 |---|---|---|
-| This design | 0.04 ms | 6.7% |
-| Redis on every request | 8.74 ms | ~0% |
+| Periodic Consumption | 0.04 ms | 6.7% |
+| Per-Request Consumption | 8.74 ms | ~0% |
 
-## Run
+### Run
 
 Requires Node.js, Redis, and Envoy installed on Linux or WSL.
 
