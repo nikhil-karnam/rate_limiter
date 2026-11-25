@@ -29,10 +29,10 @@ Communicates with Redis and consumes tokens on every request instead of periodic
 
 25,000 requests per second across 3 app instances, 3 ms simulated Redis RTT.
 
-| | Check p99 | Overshoot |
-|---|---|---|
-| Periodic Consumption | 0.04 ms | 6.7% |
-| Per-Request Consumption | 8.74 ms | ~0% |
+| | Check p99 |
+|---|---|
+| Periodic Consumption | 0.04 ms |
+| Per-Request Consumption | 8.74 ms |
 
 ## Setup and Running
 
