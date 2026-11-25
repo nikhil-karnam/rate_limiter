@@ -1,6 +1,6 @@
 Distributed API rate limiters for 3 servers built with NestJS and Redis, comparing Databricks design and Stripe/GitHub's design. Added a load balancer (Envoy Proxy) for server health checks, rerouting traffic from slow/dead servers, and shedding load.
 
-## How Databricks's limiter works
+## How Databricks's Limiter Works
 
 - Each server lets requests through, without asking Redis.
 - Redis runs a shared token bucket that caps at 100 tokens and gradually refills 100 tokens per second.
@@ -21,7 +21,7 @@ If the number of tokens in the bucket is 1, one burst results in 200 extra concu
 What if you change the report frequency?\
 If a burst takes 4ms, there is practically no difference between reporting every 100ms vs every 700ms. In both cases, a token debt of ~300 will likely occur because the bursts will likely happen right away before the report can stop it. If reports are every 10ms, it may catch the 4ms burst mid way, tokens get consumed, and servers may receive a wait time. The point of increasing the report frequency is therefore to increase the likelihood that a burst is stopped mid-way. The cost is wasted computer power, assuming Redis can scan all keys that frequently.
 
-## How Stripe/GitHub's limiter works
+## How Stripe/GitHub's Limiter Works
 
 Communicates with Redis and consumes tokens on every request instead of periodically. The benefit is that no extra request slips through because every request checks the token bucket, and the cost is that communicating with Redis every request is slower.
 
